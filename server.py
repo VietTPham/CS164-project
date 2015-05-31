@@ -5,7 +5,7 @@ import thread
 import subprocess
 import time
 
-user = ["user1","user2","user3","user4"]
+user = ["user1","user2","user3","user4", "user5", "user6"]
 user_online = [0,0,0,0,0]
 user_conn = [0,0,0,0,0]
 password = ["pass1","pass2","pass3","pass4"]
@@ -176,13 +176,26 @@ def edit_subscriptions(conn, id, user):
       time.sleep(0.05)
       return
     remove_line_with_id("follow", id)
-    insert_follow_string = id+": "+choice.replace("\n","",2)+" "
+    insert_follow_string = id+": "+choice.replace("\n","",2)
     for i in id_follow:
-      insert_follow_string += i+" "
-    insert_follow_string += "\n"
+      insert_follow_string += " "+i
     
     file = open(path+"follow", "a")
     file.write(insert_follow_string)
+    file.close()
+    #Add choice to follower file
+    name = choice.replace("\n","",99)
+    line_without_name = ""
+    found = False
+    for line in open(path+"follower","r").readlines():
+      if name+": " in line:
+        line_without_name = line.replace(": ", ": "+id+" ", 1)
+        found = True
+    if not found:
+      line_without_name = name+": "+id+"\n"
+    remove_line_with_id("follower", name)
+    file = open(path+"follower", "a")
+    file.write(line_without_name)
     file.close()
   elif (choice == "2"):
     follow = get_follow(id)
