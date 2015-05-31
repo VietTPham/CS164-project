@@ -18,7 +18,6 @@ def init_sock():
    
   print 'Socket Created'
 
-
   try:
     remote_ip = socket.gethostbyname( host )
    
@@ -47,6 +46,10 @@ if __name__ == "__main__":
       print "Connection closed"
       sock.close()
       sys.exit()
-    input = raw_input(reply)
-    sock.send(input)
+    if (not reply.startswith("!!continue!!")):
+      input = raw_input(reply)
+      sock.send(input)
+    else:
+      reply = reply.replace("!!continue!!", "", 1)
+      print reply
   sock.close()
