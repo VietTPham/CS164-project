@@ -4,6 +4,7 @@ import socket
 import sys
 import string
 import getpass
+import thread
 
 def init_sock():
   host = '127.0.0.1'
@@ -43,7 +44,7 @@ if __name__ == "__main__":
   while (True):
     reply = sock.recv(4096)
     if (reply.startswith("!!exit!!")):
-      print "Client exiting"
+      print "Connection closed"
       sock.close()
       sys.exit()
     input = raw_input(reply)
