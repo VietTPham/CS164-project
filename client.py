@@ -38,11 +38,14 @@ if __name__ == "__main__":
   sock = init_sock()
   
   #Send some data to remote server
+  #first message from server
+  print sock.recv(4096)
   while (True):
     reply = sock.recv(4096)
-    input = raw_input(reply)
-    sock.send(input)
-    if (reply == "exit"):
+    if (reply.startswith("!!exit!!")):
+      print "Client exiting"
       sock.close()
       sys.exit()
+    input = raw_input(reply)
+    sock.send(input)
   sock.close()

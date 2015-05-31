@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import socket
 import sys
-from thread import *
+import thread
  
 user = ["user1","user2","user3","user4"]
 password = ["pass1","pass2","pass3","pass4"]
@@ -33,31 +33,29 @@ def clientthread(conn):
     #Receiving from client
     try_count = 3
     while True:
-      User = conn.recv(1024)
-      print "User",User,"attempting to login"
-      Password = conn.recv(1024)
-      if any(User in s for s in user) and Password == password[user.index(User)]:
-        print "User", User, "login successful"
-        conn.send("login successful")
+      conn.send("User: ")
+      id = conn.recv(1024)
+      print "User",id,"attempting to login"
+      conn.send("Password: ")
+      pwd = conn.recv(1024)
+      
+      if any(id in s for s in user) and pwd == password[user.index(id)]:
+        print "User", id, "login successful"
+        #conn.send("login successful")
       else:
-        print "User",User, "login failed"
+        print "User",id, "login failed"
         try_count = try_count -1
         if (try_count == 0):
-          print "permission denied"
-          conn.send("permission denied")
-          try:
-            thread.exit()
-            conn.close()
-          except:
-            pass
-        else:
-          conn.send("login failed")
-
+          print "User",id,"permission denied"
+          conn.send("!!exit!!")
+          conn.close()
+          thread.exit()
+      
 if __name__ == "__main__":
   sock = init_sock()
   while (True):
     conn, addr = sock.accept()
     print 'Connected with ' + addr[0] + ':' + str(addr[1])
-    start_new_thread(clientthread ,(conn,))
+    thread.start_new_thread(clientthread ,(conn,))
   conn.close()
   sock.close()
