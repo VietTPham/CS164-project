@@ -176,13 +176,14 @@ def edit_subscriptions(conn, id, user):
       time.sleep(0.05)
       return
     remove_line_with_id("follow", id)
-    insert_follow_string = "\n"+id+": "+choice.replace("\n","",2)+" "
+    insert_follow_string = id+": "+choice.replace("\n","",2)+" "
     for i in id_follow:
       insert_follow_string += i+" "
     insert_follow_string += "\n"
     
     file = open(path+"follow", "a")
     file.write(insert_follow_string)
+    file.close()
   elif (choice == "2"):
     follow = get_follow(id)
     counter = 0
@@ -193,7 +194,7 @@ def edit_subscriptions(conn, id, user):
     string += "  ("+str(counter+1)+") "+"Return to main menu\n  select: "
     conn.send(string)
     choice = conn.recv(4096)
-    
+    name = follow[int(choice)-1]
     if(choice != counter+1):
       follow.pop(int(choice)-1)
     elif (choice == str(counter+1)):
@@ -201,13 +202,24 @@ def edit_subscriptions(conn, id, user):
     #parse file
     remove_line_with_id("follow", id)
     #insert deleted line back
-    insert_follow_string = id+": "
+    insert_follow_string = id+":"
     for i in follow:
-      insert_follow_string += i+" "
-    insert_follow_string += "\n"
+      insert_follow_string += " "+i
+    insert_follow_string +="\n"
     #with open(path+"follow", "a") as myfile:
     file = open(path+"follow", "a")
     file.write(insert_follow_string)
+    
+    #remove from follower file
+    name = name.replace("\n","",99)
+    line_without_name = ""
+    for line in open(path+"follower","r").readlines():
+      if name+": " in line:
+        line_without_name = line.replace(id, "", 1)
+    remove_line_with_id("follower", name)
+    file = open(path+"follower", "a")
+    file.write(line_without_name)
+    file.close()
   else:
     return
 def post_a_message(conn, id):
