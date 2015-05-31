@@ -50,6 +50,6 @@ if __name__ == "__main__":
       input = raw_input(reply)
       sock.send(input)
     else:
-      reply = reply.replace("!!continue!!", "", 1)
+      reply = reply.replace("!!continue!!", "", 99)
       print reply
   sock.close()

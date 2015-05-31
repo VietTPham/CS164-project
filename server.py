@@ -97,16 +97,18 @@ def see_offline_message(conn, id):
   See Offline Messages
   (1) See all messages
   (2) Message from a user
+  (3) Return to main menu
   select: """)
   choice = conn.recv(4096)
   has_at_least_one_unread = False
   if (choice == "1"):
+    #check file for all instande of "unread: " at the beginning of a line
     temp_file = open(path+id+".tmp", "w")
     for line in open(path+id,"r").readlines():
       if line.startswith("unread:"):
         line_without_unread = line.replace("unread: ", "", 1)
         temp_file.write(line_without_unread)
-        conn.send(line_without_unread)
+        conn.send("!!continue!!"+line_without_unread)
         has_at_least_one_unread = True
       else:
         temp_file.write(line)
@@ -114,10 +116,49 @@ def see_offline_message(conn, id):
       conn.send('!!continue!!No offline message.')
     temp_file.close()
     subprocess.call(['mv', path+id+'.tmp', path+id])
+  elif (choice == "2"):
+    follow = get_follow(id)
+    counter = 0
+    string = "\n  Select a user\n"
+    for user in follow:
+      string += "  ("+str(counter+1)+") "+follow[counter]+"\n"
+      counter += 1
+    string += "  ("+str(counter+1)+") "+"Return to main menu\n  select: "
+    conn.send(string)
+    choice = conn.recv(4096)
+    if(choice != counter+1):
+      #get the user you want to read
+      follow_id = follow[int(choice)-1]
+      #check the user file for any unread and update the file
+      temp_file = open(path+id+".tmp", "w")
+      for line in open(path+id,"r").readlines():
+        if line.startswith("unread:") and (line.replace("unread: ", "", 1).startswith("@"+follow_id)):
+          line_without_unread = line.replace("unread: ", "", 1)
+          temp_file.write(line_without_unread)
+          conn.send("!!continue!!"+line_without_unread)
+          has_at_least_one_unread = True
+        else:
+          temp_file.write(line)
+      if has_at_least_one_unread == False:
+        conn.send('!!continue!!No offline message.')
+      temp_file.close()
+      subprocess.call(['mv', path+id+'.tmp', path+id])
+    else:
+      return
+  else:
+    return
 def edit_subscriptions(conn, id):
   print id
 def post_a_message(conn, id):
   print id
+  
+  
+def get_follow(id):
+  for line in open(path+"follow","r").readlines():
+    if (line.startswith(id)):
+      follow = line.replace(id+": ", "", 1)
+      follow = follow.split(" ")
+      return follow
 if __name__ == "__main__":
   sock = init_sock()
   while (True):
