@@ -46,10 +46,10 @@ if __name__ == "__main__":
       print "Connection closed"
       sock.close()
       sys.exit()
-    if (not reply.startswith("!!continue!!")):
-      input = raw_input(reply)
-      sock.send(input)
-    else:
+    if (reply.startswith("!!continue!!")):
       reply = reply.replace("!!continue!!", "", 99)
       print reply
+    elif (not reply.startswith("!!continue!!")):
+      input = raw_input(reply)
+      sock.send(input)
   sock.close()
