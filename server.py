@@ -2,7 +2,7 @@
 import socket
 import sys
 import thread
- 
+import subprocess
 user = ["user1","user2","user3","user4"]
 user_online = [0,0,0,0,0]
 user_conn = [0,0,0,0,0]
@@ -41,7 +41,7 @@ def clientthread(conn):
     conn.send("Password: ")
     pwd = conn.recv(1024)
     
-    if any(id in s for s in user) and pwd == password[user.index(id)]:
+    if (id in user) and (pwd == password[user.index(id)]):
       #mark that the user is online
       user_online[user.index(id)] = 1
       #mark the user conn number
@@ -90,7 +90,23 @@ def menu(conn, id):
   else:
     conn.send("Invalid choice")
 def see_offline_message(conn, id):
-  print id
+  conn.send(
+  """See Offline Messages
+  (1) See all messages
+  (2) Message from a user
+  select: """)
+  choice = conn.recv(1024)
+  if (choice == "1"):
+    temp_file = open(id+".tmp", "w")
+    for line in open(id,"r").readlines():
+      if line.startswith("unread:"):
+        line_without_unread = line.replace("unread: ", "", 1)
+        temp_file.write(line_without_unread)
+        conn.send(line_without_unread)
+      else:
+        temp_file.write(line)
+    temp_file.close()
+    subprocess.Popen(['mv', id+'.tmp', id])
 def edit_subscriptions(conn, id):
   print id
 def post_a_message(conn, id):
