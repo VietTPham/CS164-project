@@ -40,7 +40,7 @@ def clientthread(conn):
   #Receiving from client
   try_count = 3
   while True:
-    conn.send("User: ")
+    conn.send("Username: ")
     id = conn.recv(4096)
     #print "User",id,"attempting to login"
     conn.send("Password: ")
@@ -54,7 +54,7 @@ def clientthread(conn):
       
       conn.send(check_unread(id))
       while True:
-        menu(conn,id)
+        menu(conn, id)
     else:
       try_count -= 1
       if (try_count == 0):
@@ -69,6 +69,7 @@ def check_unread(id):
     if line.startswith("unread:"):
       unread += 1
   unread_message = "You have",unread,"unread messages\n"
+  time.sleep(0.05)
   return ' '.join(str(x) for x in unread_message)
 
 def menu(conn, id):
@@ -78,7 +79,9 @@ def menu(conn, id):
   (1) See Offline Messages
   (2) Edit Subscriptions
   (3) Post a Message
-  (4) Logout
+  (4) Hashtag Search
+  (5) See Followers   
+  (6) Logout
   select: """)
   choice = conn.recv(4096)
   if (choice == "1"):
@@ -88,6 +91,10 @@ def menu(conn, id):
   elif (choice == "3"):
     post_a_message(conn, id)
   elif (choice == "4"):
+    hashtag_search(conn, id)
+  elif (choice == "5"):
+    see_followers(conn, id)
+  elif (choice == "6"):
     #mark user as offline then exit
     #print id, "logout"
     user_online[user.index(id)] = 0
@@ -250,7 +257,7 @@ def post_a_message(conn, id):
   conn.send("Enter your teewt: ")
   teewt = conn.recv(4096)
   if len(teewt) > 140:
-    conn.send("!!continue!!Teewt is longer than 140 characters.")
+    conn.send("!!continue!!Error: Teewt is longer than 140 characters.")
     time.sleep(0.05)
     return
   conn.send("Include hastag? y/n: ")
@@ -260,9 +267,53 @@ def post_a_message(conn, id):
     conn.send("Enter hashtag separated by space: ")
     hashtag +="#"
     hashtag += conn.recv(4096)
-  teewt += " "+hashtag.replace(" ", " #", 99)
-  print teewt
+    teewt += " "+hashtag.replace(" ", " #", 99)
+  all_teewt = open(path+"all_teewt","a")
+  teewt = "@"+id+": "+teewt+"\n"
+  all_teewt.write(teewt)
   
+  global messagecount
+  messagecount += 1
+  all_teewt.close()
+  follower = []
+  for line in open(path+"follower","r").readlines():
+    if (line.startswith(id)):
+      follower = line.replace(id+": ", "", 1)
+      follower = follower.replace("\n","",99)
+      follower = follower.split(" ")
+  if len(follower) != 0:
+    for u in follower:
+      index = user.index(u)
+      #if user is offline
+      if (user_online[index] == 0):
+        write_to_offline_file = open(path+user[index],"a")
+        write_to_offline_file.write("unread: "+teewt)
+        write_to_offline_file.close()
+        global storedcount
+        storedcount +=1
+      #if user is online, then send it to there conn
+      elif (user_online[index] == 1):
+        write_to_offline_file = open(path+user[index],"a")
+        write_to_offline_file.write(teewt)
+        write_to_offline_file.close()
+        user_conn[index].send("!!new!!New teewt: "+teewt)
+        time.sleep(0.05)
+        
+def hashtag_search(conn, id):
+  print id
+def see_followers(conn, id):
+  at_leat_one = False
+  follower = []
+  for line in open(path+"follower","r").readlines():
+    if (line.startswith(id)):
+      follower = line.replace(id+": ", "", 1)
+  if len(follower) == 0:
+    conn.send("!!continue!!No follower.")
+    time.sleep(0.05)
+    return
+  conn.send("!!continue!!"+"Follower: "+follower)
+  time.sleep(0.05)
+
 def get_follow(id):
   at_leat_one = False
   follow = []
@@ -284,14 +335,16 @@ def admin_command(user, password, user_online, user_conn):
   while True:
     input = raw_input("Command: ")
     if (input == "messagecount"):
+      global messagecount
       print messagecount
     elif (input == "usercount"):
       online_user = 0
-      for user in user_online:
-        if (user == 1):
+      for u in user_online:
+        if (u == 1):
           online_user += 1
       print online_user
     elif (input == "storedcount"):
+      global storedcount
       print storedcount
     elif (input == "getuser"):
       print user
@@ -310,10 +363,13 @@ def admin_command(user, password, user_online, user_conn):
       user_conn.append(0)
       
       
-  
+def set_messagecount(num):
+  messagecount = num
+def get_messagecount():
+  return messagecount
 if __name__ == "__main__":
   sock = init_sock()
-  thread.start_new_thread(admin_command,(user,password,user_online, user_conn,) )
+  thread.start_new_thread(admin_command,(user,password,user_online, user_conn, ) )
   while (True):
     conn, addr = sock.accept()
     #print 'Connected with ' + addr[0] + ':' + str(addr[1])

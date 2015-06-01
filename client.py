@@ -5,7 +5,10 @@ import sys
 import string
 import getpass
 import thread
+import select
+import time
 
+reply = ""
 def init_sock():
   host = '127.0.0.1'
   port = int(sys.argv[1])
@@ -39,17 +42,35 @@ if __name__ == "__main__":
   
   #Send some data to remote server
   #first message from server
+  
   print sock.recv(4096)
+  time.sleep(0.05)
+  reply = ""
   while (True):
-    reply = sock.recv(4096)
-    if (reply.startswith("!!exit!!")):
-      print "Connection closed"
-      sock.close()
-      sys.exit()
-    if (reply.startswith("!!continue!!")):
-      reply = reply.replace("!!continue!!", "", 99)
-      print reply
-    elif (not reply.startswith("!!continue!!")):
-      input = raw_input(reply)
-      sock.send(input)
+    r, w, x = select.select([sys.stdin, sock], [], [])
+    if not r:
+      continue
+    if r[0] is sys.stdin:
+      choice = raw_input()
+      sock.send(choice)
+    else:
+      reply = sock.recv(4096)
+      if (reply.startswith("!!exit!!")):
+        print "Connection closed"
+        sock.close()
+        sys.exit()
+      elif (reply.startswith("!!continue!!")):
+        reply = reply.replace("!!continue!!", "", 99)
+        print reply
+      elif (reply.startswith("!!new!!")):
+        reply = reply.replace("!!new!!", "", 99)
+        print reply
+      else:
+        #print (reply)
+        if (reply.startswith("Password:")):
+          message = getpass.getpass()
+          sock.send(message)
+        else:
+          sys.stdout.write(reply)
+          sys.stdout.flush()
   sock.close()
