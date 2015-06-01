@@ -300,7 +300,20 @@ def post_a_message(conn, id):
         time.sleep(0.05)
         
 def hashtag_search(conn, id):
-  print id
+  conn.send("Enter hashtag to search: ")
+  choice = conn.recv(4096)
+  choice = "#"+choice.replace("\n","",1)
+  found = []
+  string = ""
+  for s in reversed(open(path+"all_teewt").readlines()):
+    if (choice in s):
+      found.append(s)
+    if (len(found) == 10):
+      break
+  for s in found:
+    string += s.replace("\n","",1) + "\n"
+  conn.send("!!continue!!"+string)
+  time.sleep(0.05)
 def see_followers(conn, id):
   at_leat_one = False
   follower = []
