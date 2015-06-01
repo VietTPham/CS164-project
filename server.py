@@ -4,12 +4,14 @@ import sys
 import thread
 import subprocess
 import time
+import getpass
 
 user = ["user1","user2","user3","user4", "user5", "user6"]
-user_online = [0,0,0,0,0]
-user_conn = [0,0,0,0,0]
-password = ["pass1","pass2","pass3","pass4"]
+user_online = [0,0,0,0,0,0]
+user_conn = [0,0,0,0,0,0]
+password = ["pass1","pass2","pass3","pass4", "pass5", "pass6"]
 messagecount = 0
+storedcount = 0
 path = "./profile/"
 def init_sock():
   host = ''   # Symbolic name meaning all available interfaces
@@ -40,7 +42,7 @@ def clientthread(conn):
   while True:
     conn.send("User: ")
     id = conn.recv(4096)
-    print "User",id,"attempting to login"
+    #print "User",id,"attempting to login"
     conn.send("Password: ")
     pwd = conn.recv(4096)
     
@@ -56,7 +58,7 @@ def clientthread(conn):
     else:
       try_count -= 1
       if (try_count == 0):
-        print "User",id,"permission denied"
+        #print "User",id,"permission denied"
         conn.send("!!exit!!")
         conn.close()
         thread.exit()
@@ -87,8 +89,9 @@ def menu(conn, id):
     post_a_message(conn, id)
   elif (choice == "4"):
     #mark user as offline then exit
-    print id, "logout"
+    #print id, "logout"
     user_online[user.index(id)] = 0
+    user_conn[user.index(id)] = 0
     conn.send("!!exit!!")
     conn.close()
     thread.exit()
@@ -181,7 +184,7 @@ def edit_subscriptions(conn, id, user):
       insert_follow_string += " "+i
     
     file = open(path+"follow", "a")
-    file.write(insert_follow_string)
+    file.write(insert_follow_string+"\n")
     file.close()
     #Add choice to follower file
     name = choice.replace("\n","",99)
@@ -199,45 +202,66 @@ def edit_subscriptions(conn, id, user):
     file.close()
   elif (choice == "2"):
     follow = get_follow(id)
-    counter = 0
-    string = "\n  Select a user to remove"
-    for user in follow:
-      string += "\n  ("+str(counter+1)+") "+follow[counter]
-      counter += 1
-    string += "  ("+str(counter+1)+") "+"Return to main menu\n  select: "
-    conn.send(string)
-    choice = conn.recv(4096)
-    name = follow[int(choice)-1]
-    if(choice != counter+1):
-      follow.pop(int(choice)-1)
-    elif (choice == str(counter+1)):
+    if (len(follow) == 0 ):
+      conn.send("!!continue!!No subscription.")
+      time.sleep(0.05)
       return
-    #parse file
-    remove_line_with_id("follow", id)
-    #insert deleted line back
-    insert_follow_string = id+":"
-    for i in follow:
-      insert_follow_string += " "+i
-    insert_follow_string +="\n"
-    #with open(path+"follow", "a") as myfile:
-    file = open(path+"follow", "a")
-    file.write(insert_follow_string)
-    
-    #remove from follower file
-    name = name.replace("\n","",99)
-    line_without_name = ""
-    for line in open(path+"follower","r").readlines():
-      if name+": " in line:
-        line_without_name = line.replace(id, "", 1)
-    remove_line_with_id("follower", name)
-    file = open(path+"follower", "a")
-    file.write(line_without_name)
-    file.close()
-  else:
+    elif (len(follow) > 1):
+      counter = 0
+      string = "\n  Select a user to remove"
+      for user in follow:
+        string += "\n  ("+str(counter+1)+") "+follow[counter]
+        counter += 1
+      string += "  ("+str(counter+1)+") "+"Return to main menu\n  select: "
+      conn.send(string)
+      choice = conn.recv(4096)
+      if (choice == str(counter+1)):
+        return
+      else:
+        name = follow[int(choice)-1]
+        if(choice != counter+1):
+          follow.pop(int(choice)-1)
+        elif (choice == str(counter+1)):
+          return
+        #parse file
+        remove_line_with_id("follow", id)
+        #insert deleted line back
+        insert_follow_string = id+":"
+        for i in follow:
+          insert_follow_string += " "+i
+        insert_follow_string +="\n"
+        #with open(path+"follow", "a") as myfile:
+        file = open(path+"follow", "a")
+        file.write(insert_follow_string)
+        
+        #remove from follower file
+        name = name.replace("\n","",99)
+        line_without_name = ""
+        for line in open(path+"follower","r").readlines():
+          if name+": " in line:
+            line_without_name = line.replace(id, "", 1)
+        remove_line_with_id("follower", name)
+        file = open(path+"follower", "a")
+        file.write(line_without_name)
+        file.close()
+  elif (choice == "3"):
     return
 def post_a_message(conn, id):
-  print id
-  
+  conn.send("Enter your teewt: ")
+  teewt = conn.recv(4096)
+  if len(teewt) > 140:
+    conn.send("!!continue!!Teewt is longer than 140 characters.")
+    time.sleep(0.05)
+    return
+  conn.send("Include hastag? y/n: ")
+  choice = conn.recv(4096)
+  hashtag = ""
+  if choice == "y":
+    conn.send("Enter hashtag separated by space: ")
+    hashtag +="#"
+    hashtag += conn.recv(4096)
+  teewt += " "+hashtag.replace(" ", " #", 99)
+  print teewt
   
 def get_follow(id):
   at_leat_one = False
@@ -256,12 +280,43 @@ def remove_line_with_id(file, id):
   temp_file.close()
   subprocess.call(['mv', path+file+'.tmp', path+file])
       
+def admin_command(user, password, user_online, user_conn):
+  while True:
+    input = raw_input("Command: ")
+    if (input == "messagecount"):
+      print messagecount
+    elif (input == "usercount"):
+      online_user = 0
+      for user in user_online:
+        if (user == 1):
+          online_user += 1
+      print online_user
+    elif (input == "storedcount"):
+      print storedcount
+    elif (input == "getuser"):
+      print user
+      print password
+      print user_online
+      print user_conn
+    elif (input == "newuser"):
+      input = raw_input("Username: ")
+      user.append(input)
+      #create init file
+      temp_file = open(path+input, "w")
+      temp_file.close()
+      input = getpass.getpass("Password: ")
+      password.append(input)
+      user_online.append(0)
+      user_conn.append(0)
       
+      
+  
 if __name__ == "__main__":
   sock = init_sock()
+  thread.start_new_thread(admin_command,(user,password,user_online, user_conn,) )
   while (True):
     conn, addr = sock.accept()
-    print 'Connected with ' + addr[0] + ':' + str(addr[1])
+    #print 'Connected with ' + addr[0] + ':' + str(addr[1])
     thread.start_new_thread(clientthread ,(conn,))
   conn.close()
   sock.close()
