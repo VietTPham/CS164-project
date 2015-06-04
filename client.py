@@ -10,7 +10,7 @@ import time
 
 reply = ""
 def init_sock():
-  host = '127.0.0.1'
+  host = '10.0.0.4'
   port = int(sys.argv[1])
 
   try:
