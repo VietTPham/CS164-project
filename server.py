@@ -374,6 +374,8 @@ def admin_command(user, password, user_online, user_conn):
       password.append(input)
       user_online.append(0)
       user_conn.append(0)
+    elif (input == "help"):
+      print "Avaliable command:\n  messagecount\n  usercount\n  storedcount\n  getuser"
       
       
 def set_messagecount(num):
